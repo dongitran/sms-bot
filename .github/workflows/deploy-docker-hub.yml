@@ -55,7 +55,6 @@ jobs:
         run: |
           docker buildx create --name builder --use
           docker buildx inspect builder --bootstrap
-          docker buildx build --platform linux/arm64 -t ideavn/sms-bot-urbox:latest .
           docker buildx build --platform linux/arm64 -t ideavn/sms-bot-urbox:latest --push .
 
   send-notification-successful:
