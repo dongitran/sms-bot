@@ -17,8 +17,7 @@ jobs:
           curl -X POST \
             https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
             -d chat_id=${TELEGRAM_CHAT_ID} \
-            -d text="🚀 <b>Sms Bot</b> Deployment has started!
-            Your deployment process is in progress. 🛠️🔍" \
+            -d text="🚀 <b>Sms Bot</b> Deployment has started!" \
             -d parse_mode=HTML
 
   build:
@@ -62,8 +61,7 @@ jobs:
           curl -X POST \
             https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
             -d chat_id=${TELEGRAM_CHAT_ID} \
-            -d text="🎉 <b>Sms Bot</b> Deployment to docker hub was successful!
-            Your amazing tool is now available for everyone! 🚀✨" \
+            -d text="🎉 <b>Sms Bot</b> Deployment to docker hub was successful!" \
             -d parse_mode=HTML
 
   send-notification-failed:
