@@ -21,7 +21,7 @@ jobs:
             -d parse_mode=HTML
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
