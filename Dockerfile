@@ -1,4 +1,4 @@
-FROM node:latest
+FROM arm32v7/node
 
 WORKDIR /usr/src/app
 
