@@ -20,6 +20,13 @@ jobs:
             -d text="🚀 <b>Sms Bot</b> Deployment has started!" \
             -d parse_mode=HTML
 
+  install-docker:
+    runs-on: macos-latest
+    steps:
+      - name: Install Docker
+        run: |
+          brew install docker
+
   build:
     runs-on: macos-latest
 
