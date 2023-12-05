@@ -17,12 +17,11 @@ bot.start((ctx) => ctx.reply("Hello, I'm dev bot~"));
 bot.on("sticker", (ctx) => ctx.reply("👍"));
 bot.launch();
 
-
 let isProcessing = false;
 let lastId = 0;
 let firstRun = true;
 let cnt = 0;
-const job = schedule.scheduleJob("*/2 * * * * *", async function () {
+const job = schedule.scheduleJob("*/1 * * * * *", async function () {
   try {
     if (isProcessing) {
       console.log("busy");
@@ -101,7 +100,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     lastId = data.logs[0].id;
     isProcessing = false;
   } catch (error) {
-    console.log(error, "process error");
+    console.log(error, "process error..");
     isProcessing = false;
   }
 });
