@@ -20,19 +20,16 @@ jobs:
             -d text="🚀 <b>Sms Bot</b> Deployment has started!" \
             -d parse_mode=HTML
 
-  install-docker:
-    runs-on: macos-latest
-    steps:
-      - name: Install Docker
-        run: |
-          brew install docker
-
   build:
     runs-on: macos-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
+      - name: Install Docker
+        run: |
+          brew install docker
 
       - name: Set up Node.js
         uses: actions/setup-node@v2
@@ -45,10 +42,8 @@ jobs:
           npm run build
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
         run: |
