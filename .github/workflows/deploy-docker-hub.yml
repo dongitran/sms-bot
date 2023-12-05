@@ -40,6 +40,15 @@ jobs:
         run: |
           npm install
           npm run build
+      
+      - name: Check if Docker is installed
+        run: docker --version
+  
+      - name: List Docker images
+        run: docker images
+  
+      - name: List Docker containers
+        run: docker ps -a
 
       - name: Login to Docker Hub
         run: |
