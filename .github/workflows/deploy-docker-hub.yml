@@ -46,8 +46,8 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t ideavn/sms-bot-urbox:testlatest .
-          docker push ideavn/sms-bot-urbox:testlatest
+          docker build -t ideavn/sms-bot-urbox:latest .
+          docker push ideavn/sms-bot-urbox:latest
 
   send-notification-successful:
     needs: build
