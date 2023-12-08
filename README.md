@@ -5,9 +5,11 @@
 
 This repository manages the deployment of an SMS bot application onto a Raspberry Pi using Docker. It involves automated workflows to build, deploy, and update the Docker image, as well as a Python script for checking and updating the running container.
 ## 📆 Roadmap
-- [x] Basic functionality completed
-- [ ] Implement an API endpoint to fetch or update tokens dynamically.
-- [ ] Check container status on startup; if not running, start the container.
+✅ Basic functionality completed
+
+⬜ Implement an API endpoint to fetch or update tokens dynamically.
+
+⬜ Check container status on startup; if not running, start the container.
 
 ## 🚀 Workflow Overview
 
