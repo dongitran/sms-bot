@@ -1,4 +1,4 @@
-# 📱 SMS Bot
+# 📱 SMS Bot - Sample NodeJs Project with simple CI-CD
 
 [![Build Status](https://github.com/dongtranthien/sms-bot/workflows/Deploy%20to%20Docker%20Hub/badge.svg)](https://github.com/dongtranthien/sms-bot/actions)
 
