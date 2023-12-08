@@ -21,25 +21,22 @@ let isProcessing = false;
 let lastId = 0;
 let firstRun = true;
 let cnt = 0;
+
 const job = schedule.scheduleJob("*/1 * * * * *", async function () {
   try {
     if (isProcessing) {
-      console.log("busy");
+      console.log("busy..");
       return;
     }
     isProcessing = true;
     cnt++;
     console.log("Counter run: " + cnt);
 
-    let res = await axios.get(
-      process.env.URL_GET_LOGS,
-      {
-        headers: {
-          "X-Access-Token":
-            process.env.API_TOKEN,
-        },
-      }
-    );
+    let res = await axios.get(process.env.URL_GET_LOGS, {
+      headers: {
+        "X-Access-Token": process.env.API_TOKEN,
+      },
+    });
 
     const data = res.data;
 
@@ -54,8 +51,8 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
     let msgSendTelegram = "";
     for (let i = 20; i > 0; i--) {
       if (data.logs[i - 1].id > lastId) {
-        msgSendTelegram += "<b>" + data.logs[i - 1]["target"] + "</b>";
-        msgSendTelegram += "-->";
+        let msgSendTelegramItem = "<b>" + data.logs[i - 1]["target"] + "</b>";
+        msgSendTelegramItem += "-->";
 
         try {
           const payload = data.logs[i - 1]["payload"];
@@ -64,14 +61,15 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
           const match = payload.match(regex);
 
           const otpCode = match[0];
-          msgSendTelegram +=
+          msgSendTelegramItem +=
             "<b>" +
             ` <code>${otpCode}</code>   &lt;--Nhấn vào để copy nha` +
             "</b>";
-          msgSendTelegram += "\n\n\n";
+          msgSendTelegramItem += "\n\n\n";
+          msgSendTelegram += msgSendTelegramItem;
         } catch (error) {
-          msgSendTelegram += data.logs[i - 1]["payload"];
-          msgSendTelegram += "\n\n\n";
+          //msgSendTelegramItem += data.logs[i - 1]["payload"];
+          //msgSendTelegramItem += "\n\n\n";
         }
       }
     }
@@ -110,6 +108,5 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
-
 
 module.exports = app;

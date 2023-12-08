@@ -1,0 +1,10 @@
+[Unit]
+Description=Auto Pull Docker Script
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python /home/dongtran/py/main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
