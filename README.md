@@ -17,6 +17,11 @@ This repository manages the deployment of an SMS bot application onto a Raspberr
 
 - A systemd service for running a Python script (`main.py`) to continuously check and update the Docker container if a new image is available.
 
+### Notification
+<div style="text-align:center">
+    <img src="notification.png" alt="Text mô tả ảnh">
+</div>
+
 ## File Structure
 
 - `.github/workflows/deploy-dockerhub.yml`: GitHub Actions workflow for deploying to Docker Hub.
