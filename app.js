@@ -13,7 +13,7 @@ app.set("view engine", "pug");
 app.use(logger("dev"));
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.start((ctx) => ctx.reply("Hello, I'm dev bot~"));
+bot.start((ctx) => ctx.reply("Hello, I'm sms bot~"));
 bot.on("sticker", (ctx) => ctx.reply("👍"));
 bot.launch();
 
