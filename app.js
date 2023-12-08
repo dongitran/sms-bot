@@ -63,7 +63,7 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
           const otpCode = match[0];
           msgSendTelegramItem +=
             "<b>" +
-            ` <code>${otpCode}</code>   &lt;--Nhấn vào để copy nha` +
+            ` <code>${otpCode}</code> ` +
             "</b>";
           msgSendTelegramItem += "\n\n\n";
           msgSendTelegram += msgSendTelegramItem;
