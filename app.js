@@ -76,7 +76,7 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
     if (msgSendTelegram.length > 0) {
       try {
         bot.telegram.sendMessage(
-          process.env.TELEGRAM_GROUP_ID,
+          '-1002144962138',
           msgSendTelegram,
           {
             parse_mode: "HTML",
