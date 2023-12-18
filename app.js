@@ -61,10 +61,7 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
           const match = payload.match(regex);
 
           const otpCode = match[0];
-          msgSendTelegramItem +=
-            "<b>" +
-            ` <code>${otpCode}</code> ` +
-            "</b>";
+          msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
           msgSendTelegramItem += "\n\n\n";
           msgSendTelegram += msgSendTelegramItem;
         } catch (error) {
@@ -76,7 +73,7 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
     if (msgSendTelegram.length > 0) {
       try {
         bot.telegram.sendMessage(
-          '-1002144962138',
+          process.env.TELEGRAM_GROUP_ID,
           msgSendTelegram,
           {
             parse_mode: "HTML",
