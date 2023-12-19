@@ -8,3 +8,6 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+
+[Service]
+Restart=on-failure
