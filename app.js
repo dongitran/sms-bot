@@ -22,7 +22,7 @@ let lastId = 0;
 let firstRun = true;
 let cnt = 0;
 
-const job = schedule.scheduleJob("*/1 * * * * *", async function () {
+const job = schedule.scheduleJob("*/2 * * * * *", async function () {
   try {
     if (isProcessing) {
       console.log("busy..");
