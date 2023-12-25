@@ -22,7 +22,7 @@ let lastId = 0;
 let firstRun = true;
 let cnt = 0;
 
-const job = schedule.scheduleJob("*/1 * * * * *", async function () {
+const job = schedule.scheduleJob("*/2 * * * * *", async function () {
   try {
     if (isProcessing) {
       console.log("busy..");
@@ -61,10 +61,7 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
           const match = payload.match(regex);
 
           const otpCode = match[0];
-          msgSendTelegramItem +=
-            "<b>" +
-            ` <code>${otpCode}</code> ` +
-            "</b>";
+          msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
           msgSendTelegramItem += "\n\n\n";
           msgSendTelegram += msgSendTelegramItem;
         } catch (error) {
