@@ -73,7 +73,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     if (msgSendTelegram.length > 0) {
       try {
         bot.telegram.sendMessage(
-          '-1001965286403',
+          '-4080463321',
           msgSendTelegram,
           {
             parse_mode: "HTML",
