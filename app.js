@@ -67,6 +67,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         } catch (error) {
           //msgSendTelegramItem += data.logs[i - 1]["payload"];
           //msgSendTelegramItem += "\n\n\n";
+          console.log(error, "Get otp error");
         }
       }
     }
