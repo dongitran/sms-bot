@@ -25,7 +25,7 @@ let cnt = 0;
 const job = schedule.scheduleJob("*/2 * * * * *", async function () {
   try {
     if (isProcessing) {
-      console.log("busy...");
+      console.log("busy....");
       return;
     }
     isProcessing = true;
