@@ -56,9 +56,15 @@ def check_and_update_image(container_name, image_name):
             container.stop()
             container.remove()
 
-            client.containers.run(image_name, detach=True, name=container_name, volumes={
-                '/home/dongtran/py/.env': {'bind': '/usr/src/app/.env', 'mode': 'rw'}
-            })
+            client.containers.run(
+                image_name, 
+                detach=True, 
+                name=container_name, 
+                restart_policy={"Name": "always", "MaximumRetryCount": 99},
+                volumes={
+                    '/home/dongtran/py/.env': {'bind': '/usr/src/app/.env', 'mode': 'rw'}
+                }
+            )
             logger.info("Container update successful.")
             send_telegram_message("🚀 <b>Auto Pull Docker - Raspberry pi</b> Deployment on raspberry pi sucessful!")
         else:
