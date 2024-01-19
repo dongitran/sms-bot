@@ -2,3 +2,4 @@ node_modules
 test
 .env
 dist
+auto-pull-docker-pi
