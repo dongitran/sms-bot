@@ -71,7 +71,7 @@ jobs:
             whoami
             echo "$ENV_FILE_CONTENT" > /tmp/.env
             docker pull ideavn/sms-bot-urbox
-            docker stop sms-bot-urbox
+            docker stop --quiet sms-bot-urbox
             docker rm sms-bot-urbox
             docker run -d --name sms-bot-urbox --env-file /tmp/.env --restart always ideavn/sms-bot-urbox
             rm -rf /tmp/.env
