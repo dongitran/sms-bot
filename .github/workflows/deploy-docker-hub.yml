@@ -56,6 +56,26 @@ jobs:
           docker buildx create --name builder --use
           docker buildx inspect builder --bootstrap
           docker buildx build --platform linux/arm64 -t ideavn/sms-bot-urbox:latest --push .
+      
+      - name: Remote ssh to pull and run docker
+        env:
+          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DIGITAL_OCEAN_SSH_HOST }}
+          username: ${{ secrets.DIGITAL_OCEAN_SSH_USER_NAME }}
+          key: ${{ secrets.DIGITAL_OCEAN_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DIGITAL_OCEAN_SSH_PORT }}
+          envs: ENV_FILE_CONTENT
+          script: |
+            whoami
+            echo "$ENV_FILE_CONTENT" > /tmp/.env
+            docker pull ideavn/sms-bot-urbox
+            docker stop sms-bot-urbox
+            docker rm sms-bot-urbox
+            docker run -d --name sms-bot-urbox --env-file /tmp/.env --restart always ideavn/sms-bot-urbox
+            rm -rf /tmp/.env
+            docker image prune -a -f
 
   send-notification-successful:
     needs: build
