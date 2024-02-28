@@ -1,5 +1,6 @@
 node_modules
 test
 .env
+.env.action
 dist
 auto-pull-docker-pi

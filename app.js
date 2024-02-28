@@ -21,9 +21,28 @@ let isProcessing = false;
 let lastId = 0;
 let firstRun = true;
 let cnt = 0;
+let apiToken = "";
+let getToken = true;
+let cntWaiting = 0;
 
 const job = schedule.scheduleJob("*/2 * * * * *", async function () {
   try {
+    if (cntWaiting > 0) {
+      cntWaiting--;
+      return;
+    }
+
+    if (getToken) {
+      const tokenResult = await axios.post(process.env.URL_GET_TOKEN, {
+        username: process.env.API_USER_NAME,
+        password: process.env.API_PASSWORD,
+        type: "account",
+      });
+      apiToken = tokenResult?.data?.token;
+
+      getToken = false;
+    }
+
     if (isProcessing) {
       console.log("busy.......");
       return;
@@ -34,7 +53,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
 
     let res = await axios.get(process.env.URL_GET_LOGS, {
       headers: {
-        "X-Access-Token": process.env.API_TOKEN,
+        "X-Access-Token": apiToken,
       },
     });
 
@@ -96,7 +115,20 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     lastId = data.logs[0].id;
     isProcessing = false;
   } catch (error) {
-    console.log(error, "process error..");
+    if (error?.response?.status === 401) {
+      getToken = true;
+    }
+
+    try {
+      bot.telegram.sendMessage(
+        process.env.TELEGRAM_GROUP_ID,
+        JSON.stringify(parse(stringify(error)))
+      );
+    } catch (errorSendException) {
+      console.log("Send exception error: ", errorSendException);
+    }
+
+    cntWaiting = 10;
     isProcessing = false;
   }
 });
