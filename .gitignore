@@ -4,3 +4,4 @@ test
 .env.action
 dist
 auto-pull-docker-pi
+tmp

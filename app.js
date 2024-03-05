@@ -120,8 +120,9 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
 
     try {
+      console.log("Error: ", parse(stringify(error)));
       bot.telegram.sendMessage(
-        process.env.TELEGRAM_GROUP_ID,
+        process.env.TELEGRAM_USER_ID_DEBUG,
         JSON.stringify(parse(stringify(error)))
       );
     } catch (errorSendException) {
