@@ -117,6 +117,8 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
   } catch (error) {
     if (error?.response?.status === 401) {
       getToken = true;
+    } else {
+      cntWaiting = 20;
     }
 
     try {
@@ -129,7 +131,6 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
       console.log("Send exception error: ", errorSendException);
     }
 
-    cntWaiting = 10;
     isProcessing = false;
   }
 });
