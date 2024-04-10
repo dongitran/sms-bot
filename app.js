@@ -118,7 +118,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     if (error?.response?.status === 401) {
       getToken = true;
     } else {
-      cntWaiting = 20;
+      cntWaiting = 1;
     }
 
     try {
