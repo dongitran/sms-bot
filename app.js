@@ -92,7 +92,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
     if (msgSendTelegram.length > 0) {
       try {
-        bot.telegram.sendMessage(
+        await bot.telegram.sendMessage(
           process.env.TELEGRAM_GROUP_ID,
           msgSendTelegram,
           {
@@ -103,7 +103,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         console.log("Send message error: ", error);
         // send error to telegram
         try {
-          bot.telegram.sendMessage(
+          await bot.telegram.sendMessage(
             process.env.TELEGRAM_USER_ID_DEBUG,
             JSON.stringify(parse(stringify(error)))
           );
@@ -123,7 +123,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
 
     try {
       console.log("Error: ", parse(stringify(error)));
-      bot.telegram.sendMessage(
+      await bot.telegram.sendMessage(
         process.env.TELEGRAM_USER_ID_DEBUG,
         JSON.stringify(parse(stringify(error)))
       );
