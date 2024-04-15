@@ -49,7 +49,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
     isProcessing = true;
     cnt++;
-    console.log("Counter run : " + cnt);
+    // console.log("Counter run : " + cnt);
 
     let res = await axios.get(process.env.URL_GET_LOGS, {
       headers: {
