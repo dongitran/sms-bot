@@ -99,6 +99,8 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
             parse_mode: "HTML",
           }
         );
+
+        lastId = data.logs[0].id;
       } catch (error) {
         console.log("Send message error: ", error);
         // send error to telegram
@@ -112,7 +114,6 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         }
       }
     }
-    lastId = data.logs[0].id;
     isProcessing = false;
   } catch (error) {
     if (error?.response?.status === 401) {
