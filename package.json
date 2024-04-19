@@ -18,6 +18,7 @@
     "http-errors": "~1.6.3",
     "lorem-ipsum": "^2.0.3",
     "mersenne-twister": "^1.1.0",
+    "mongodb": "^6.5.0",
     "morgan": "~1.9.1",
     "node-schedule": "^2.1.1",
     "pug": "^2.0.4",
@@ -35,6 +36,8 @@
     "@babel/preset-env": "^7.23.5"
   },
   "babel": {
-    "presets": ["@babel/preset-env"]
+    "presets": [
+      "@babel/preset-env"
+    ]
   }
 }
