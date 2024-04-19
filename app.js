@@ -5,12 +5,26 @@ const { Telegraf } = require("telegraf");
 const { stringify, parse } = require("flatted");
 const schedule = require("node-schedule");
 const axios = require("axios");
+const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
 var app = express();
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(logger("dev"));
+
+// Kết nối tới MongoDB
+const uri = process.env.MONGODB_URI;
+const client = new MongoClient(uri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+client.connect().then(() => console.log("Connected to MongoDB"));
+
+// Khởi tạo logger cho MongoDB
+const db = client.db();
+const otpErrorLog = db.collection("otp_sms_bot_error_log");
+const otpDataLog = db.collection("otp_sms_bot_data");
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start((ctx) => ctx.reply("Hello, I'm sms bot~"));
@@ -68,6 +82,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
 
     let msgSendTelegram = "";
+    let dataToLog = [];
     for (let i = 20; i > 0; i--) {
       if (data.logs[i - 1].id > lastId) {
         let msgSendTelegramItem = "<b>" + data.logs[i - 1]["target"] + "</b>";
@@ -83,9 +98,25 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
           msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
           msgSendTelegramItem += "\n\n\n";
           msgSendTelegram += msgSendTelegramItem;
+
+          dataToLog.push({
+            phoneNumber: data.logs[i - 1]["target"],
+            message: otpCode,
+            rawData: data.logs[i - 1],
+            createdAt: new Date(),
+          });
         } catch (error) {
-          //msgSendTelegramItem += data.logs[i - 1]["payload"];
-          //msgSendTelegramItem += "\n\n\n";
+          try {
+            await otpErrorLog.insertOne({
+              message: error?.message,
+              type: "get-data-error",
+              error: parse(stringify(error)),
+              createdAt: new Date(),
+            });
+          } catch (errorSendException) {
+            console.log("Log get data error: ", errorSendException);
+          }
+
           console.log(error, "Get otp error");
         }
       }
@@ -112,6 +143,24 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         } catch (errorSendException) {
           console.log("Send exception error: ", errorSendException);
         }
+
+        try {
+          await otpErrorLog.insertOne({
+            message: error?.message,
+            type: "send-message-error",
+            error: parse(stringify(error)),
+            createdAt: new Date(),
+          });
+        } catch (errorSendException) {
+          console.log("Log send telegram error: ", errorSendException);
+        }
+      }
+
+      // Write log data
+      try {
+        await otpDataLog.insertMany(dataToLog);
+      } catch (error) {
+        console.log(error, "Write log data error");
       }
     }
     isProcessing = false;
@@ -128,6 +177,13 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         process.env.TELEGRAM_USER_ID_DEBUG,
         JSON.stringify(parse(stringify(error)))
       );
+
+      await otpErrorLog.insertOne({
+        message: error?.message,
+        type: "process-error",
+        error: parse(stringify(error)),
+        createdAt: new Date(),
+      });
     } catch (errorSendException) {
       console.log("Send exception error: ", errorSendException);
     }
