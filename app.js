@@ -86,8 +86,9 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         let msgSendTelegramItem = "<b>" + data.logs[i - 1]["target"] + "</b>";
         msgSendTelegramItem += "-->";
 
+        let payload;
         try {
-          const payload = data.logs[i - 1]["payload"];
+          payload = data.logs[i - 1]["payload"];
           // Get otp
           const regex = /\b\d{6}\b/g;
           const match = payload.match(regex);
@@ -109,6 +110,10 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
               message: error?.message,
               type: "get-data-error",
               error: parse(stringify(error)),
+              dataError: {
+                payload,
+                data,
+              },
               createdAt: new Date(),
             });
           } catch (errorSendException) {
@@ -163,7 +168,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
     isProcessing = false;
   } catch (error) {
-    console.log(error, 'Error process')
+    console.log(error, "Error process");
     if (error?.response?.status === 401) {
       getToken = true;
     } else {
