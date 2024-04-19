@@ -13,7 +13,6 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(logger("dev"));
 
-// Kết nối tới MongoDB
 const uri = process.env.MONGODB_URI;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -21,7 +20,6 @@ const client = new MongoClient(uri, {
 });
 client.connect().then(() => console.log("Connected to MongoDB"));
 
-// Khởi tạo logger cho MongoDB
 const db = client.db();
 const otpErrorLog = db.collection("otp_sms_bot_error_log");
 const otpDataLog = db.collection("otp_sms_bot_data");
