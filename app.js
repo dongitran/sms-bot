@@ -99,6 +99,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
           msgSendTelegram += msgSendTelegramItem;
 
           dataToLog.push({
+            id: data.logs[i - 1]?.id,
             phoneNumber: data.logs[i - 1]["target"],
             message: otpCode,
             rawData: data.logs[i - 1],
