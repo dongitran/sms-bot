@@ -10,17 +10,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send Telegram Notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}"
-        run: |
-          curl -X POST \
-            https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
-            -d chat_id=${TELEGRAM_CHAT_ID} \
-            -d text="🚀 <b>Sms Bot</b> Deployment has started!" \
-            -d parse_mode=HTML
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *🚀 OTP Sms Bot* 🏃‍♂️${{ github.run_number }}
 
-  build:
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            Started 🚁️️️️️️🚁️️️️️️🚁️️️️️️🚁️️️️️️
+
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -78,35 +84,47 @@ jobs:
             docker image prune -a -f
 
   send-notification-successful:
-    needs: build
+    needs: deploy
     runs-on: ubuntu-latest
-    if: ${{ success() && needs.build.result == 'success' }}
+    if: ${{ success() && needs.deploy.result == 'success' }}
     steps:
       - name: Send Telegram Notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}"
-        run: |
-          curl -X POST \
-            https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
-            -d chat_id=${TELEGRAM_CHAT_ID} \
-            -d text="🎉 <b>Sms Bot</b> Deployment to docker hub was successful!" \
-            -d parse_mode=HTML
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *🎉 OTP Sms Bot*
 
-  send-notification-failed:
-    needs: build
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            *Deployment Successful*
+            🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️
+
+  send-notification-deploy-failed:
+    needs: deploy
     runs-on: ubuntu-latest
-    if: ${{ failure() && needs.build.result == 'failure' }}
+    if: ${{ failure() && needs.deploy.result == 'failure' }}
     steps:
       - name: Send Telegram Notification
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: "${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}"
-        run: |
-          curl -X POST \
-            https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage \
-            -d chat_id=${TELEGRAM_CHAT_ID} \
-            -d text="❌ Oh no! <b>Sms Bot</b> Deployment failed!
-            There might be something wrong with the process. 
-            Please check it out! 🛠️🔍" \
-            -d parse_mode=HTML
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *❌ OTP Sms Bot*
+
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            *Deployment Failed*
+            😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️
