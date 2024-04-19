@@ -163,6 +163,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
     isProcessing = false;
   } catch (error) {
+    console.log(error, 'Error process')
     if (error?.response?.status === 401) {
       getToken = true;
     } else {
