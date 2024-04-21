@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: urbox-otp-sms-bot-main-process
-          image: ideavn/sms-bot-urbox:2
+          image: ideavn/sms-bot-urbox:{latest}
           ports:
             - containerPort: 8080
           envFrom:
