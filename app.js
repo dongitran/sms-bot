@@ -7,6 +7,8 @@ const schedule = require("node-schedule");
 const axios = require("axios");
 const { MongoClient } = require("mongodb");
 require("dotenv").config();
+const { setDefaultResultOrder } = require("node:dns");
+setDefaultResultOrder("ipv4first");
 
 var app = express();
 app.set("views", path.join(__dirname, "views"));
@@ -23,8 +25,6 @@ client.connect().then(() => console.log("Connected to MongoDB"));
 const db = client.db();
 const otpErrorLog = db.collection("otp_sms_bot_error_log");
 const otpDataLog = db.collection("otp_sms_bot_data");
-const { setDefaultResultOrder } = require("node:dns");
-setDefaultResultOrder("ipv4first");
 
 console.log(process.env.BOT_TOKEN, "process.env.BOT_TOKEN");
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -46,7 +46,7 @@ async function lauchBot() {
       console.log(error, "lauchbot error");
       retry++;
     }
-  } while (retry < 5);
+  } while (retry < 500);
 }
 lauchBot();
 
