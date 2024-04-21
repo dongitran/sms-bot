@@ -23,6 +23,8 @@ client.connect().then(() => console.log("Connected to MongoDB"));
 const db = client.db();
 const otpErrorLog = db.collection("otp_sms_bot_error_log");
 const otpDataLog = db.collection("otp_sms_bot_data");
+const { setDefaultResultOrder } = require("node:dns");
+setDefaultResultOrder("ipv4first");
 
 console.log(process.env.BOT_TOKEN, "process.env.BOT_TOKEN");
 const bot = new Telegraf(process.env.BOT_TOKEN);
