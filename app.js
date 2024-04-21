@@ -24,10 +24,28 @@ const db = client.db();
 const otpErrorLog = db.collection("otp_sms_bot_error_log");
 const otpDataLog = db.collection("otp_sms_bot_data");
 
+console.log(process.env.BOT_TOKEN, "process.env.BOT_TOKEN");
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.start((ctx) => ctx.reply("Hello, I'm sms bot~"));
-bot.on("sticker", (ctx) => ctx.reply("👍"));
-bot.launch();
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function lauchBot() {
+  let retry = 0;
+  do {
+    try {
+      await sleep(2000);
+      bot.start((ctx) => ctx.reply("Hello, I'm sms bot~"));
+      bot.on("sticker", (ctx) => ctx.reply("👍"));
+      await bot.launch();
+      break;
+    } catch (error) {
+      console.log(error, "lauchbot error");
+      retry++;
+    }
+  } while (retry < 5);
+}
+lauchBot();
 
 let isProcessing = false;
 let lastId = 0;
