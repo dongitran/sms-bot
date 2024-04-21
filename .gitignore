@@ -5,3 +5,5 @@ test
 dist
 auto-pull-docker-pi
 tmp
+note
+secret

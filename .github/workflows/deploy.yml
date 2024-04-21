@@ -26,7 +26,7 @@ jobs:
 
             Started 🚁️️️️️️🚁️️️️️️🚁️️️️️️🚁️️️️️️
 
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -36,7 +36,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: "14"
 
       - name: Install dependencies and build
         run: |
@@ -61,27 +61,64 @@ jobs:
         run: |
           docker buildx create --name builder --use
           docker buildx inspect builder --bootstrap
-          docker buildx build -t ideavn/sms-bot-urbox:latest --push .
-      
-      - name: Remote ssh to pull and run docker
-        env:
-          ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-        uses: appleboy/ssh-action@master
+          docker buildx build -t ideavn/sms-bot-urbox:${{ github.run_number }} --push .
+
+  deploy:
+    needs: build
+    if: ${{ success() && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install doctl
+        run: |
+          curl -sL https://github.com/digitalocean/doctl/releases/download/v1.61.0/doctl-1.61.0-linux-amd64.tar.gz | tar -xzv
+          sudo mv ./doctl /usr/local/bin/doctl
+          doctl version
+
+      - name: Download kubectl
+        uses: steebchen/kubectl@v2.0.0
         with:
-          host: ${{ secrets.DIGITAL_OCEAN_SSH_HOST }}
-          username: ${{ secrets.DIGITAL_OCEAN_SSH_USER_NAME }}
-          key: ${{ secrets.DIGITAL_OCEAN_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.DIGITAL_OCEAN_SSH_PORT }}
-          envs: ENV_FILE_CONTENT
-          script: |
-            whoami
-            echo "$ENV_FILE_CONTENT" > /tmp/.env
-            docker pull ideavn/sms-bot-urbox
-            docker stop sms-bot-urbox
-            docker rm sms-bot-urbox
-            docker run -d --name sms-bot-urbox --env-file /tmp/.env --restart always ideavn/sms-bot-urbox
-            rm -rf /tmp/.env
-            docker image prune -a -f
+          version: latest
+
+      - name: Authenticate with DigitalOcean
+        run: |
+          doctl auth init -t $ACCESS_TOKEN
+
+      - name: Apply Kubernetes deployment
+        env:
+          K8S_ID: ${{ secrets.K8S_ID }}
+        run: |
+          doctl kubernetes cluster kubeconfig save ${K8S_ID}
+          kubectl apply -f ./deployment/namespace.yaml
+          sed -i 's/{latest}/${{ github.run_number }}/g' ./deployment/main.yaml
+          kubectl apply -f ./deployment/main.yaml --validate=false
+
+  send-notification-build-failed:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ failure() && needs.build.result == 'failure' }}
+    steps:
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *❌ OTP Sms Bot*
+
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            *Build Failed*
+            😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️
 
   send-notification-successful:
     needs: deploy

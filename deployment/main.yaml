@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: urbox-otp-sms-bot-main-process
+  namespace: urbox-otp-sms-bot
+  labels:
+    app: urbox-otp-sms-bot-main-process
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: urbox-otp-sms-bot-main-process
+  template:
+    metadata:
+      labels:
+        app: urbox-otp-sms-bot-main-process
+    spec:
+      containers:
+        - name: urbox-otp-sms-bot-main-process
+          image: ideavn/sms-bot-urbox:{latest}
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: urbox-otp-sms-bot-main-process-env
