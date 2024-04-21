@@ -24,7 +24,7 @@
     "pug": "^2.0.4",
     "qs": "^6.11.2",
     "random": "^4.1.0",
-    "telegraf": "^4.9.2",
+    "telegraf": "^4.16.3",
     "telegraf-inline-menu": "^6.3.0",
     "telegram-keyboard": "^2.3.2",
     "uglify-js": "^2.6.0",

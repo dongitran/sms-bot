@@ -38,6 +38,7 @@ async function lauchBot() {
       bot.start((ctx) => ctx.reply("Hello, I'm sms bot~"));
       bot.on("sticker", (ctx) => ctx.reply("👍"));
       await bot.launch();
+      console.log("Start Bot successful");
       break;
     } catch (error) {
       console.log(error, "lauchbot error");
