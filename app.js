@@ -8,6 +8,7 @@ const axios = require("axios");
 const { MongoClient } = require("mongodb");
 require("dotenv").config();
 const { setDefaultResultOrder } = require("node:dns");
+const { get } = require("lodash");
 setDefaultResultOrder("ipv4first");
 
 var app = express();
@@ -114,18 +115,20 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
           const regex = /\b\d{6}\b/g;
           const match = payload.match(regex);
 
-          const otpCode = match[0];
-          msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
-          msgSendTelegramItem += "\n\n\n";
-          msgSendTelegram += msgSendTelegramItem;
+          const otpCode = get(match, "[0]");
+          if (otpCode) {
+            msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
+            msgSendTelegramItem += "\n\n\n";
+            msgSendTelegram += msgSendTelegramItem;
 
-          dataToLog.push({
-            id: data.logs[i - 1]?.id,
-            phoneNumber: data.logs[i - 1]["target"],
-            message: otpCode,
-            rawData: data.logs[i - 1],
-            createdAt: new Date(),
-          });
+            dataToLog.push({
+              id: data.logs[i - 1]?.id,
+              phoneNumber: data.logs[i - 1]["target"],
+              message: otpCode,
+              rawData: data.logs[i - 1],
+              createdAt: new Date(),
+            });
+          }
         } catch (error) {
           try {
             await otpErrorLog.insertOne({

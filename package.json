@@ -16,6 +16,7 @@
     "express": "~4.16.1",
     "flatted": "^3.2.9",
     "http-errors": "~1.6.3",
+    "lodash": "^4.17.21",
     "lorem-ipsum": "^2.0.3",
     "mersenne-twister": "^1.1.0",
     "mongodb": "^6.5.0",
