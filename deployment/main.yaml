@@ -1,25 +1,33 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: urbox-otp-sms-bot-main-process
+  name: urbox-otp-sms-bot
   namespace: urbox-otp-sms-bot
   labels:
-    app: urbox-otp-sms-bot-main-process
+    app: urbox-otp-sms-bot
 spec:
+  serviceName: urbox-otp-sms-bot
   replicas: 1
   selector:
     matchLabels:
-      app: urbox-otp-sms-bot-main-process
+      app: urbox-otp-sms-bot
   template:
     metadata:
       labels:
-        app: urbox-otp-sms-bot-main-process
+        app: urbox-otp-sms-bot
     spec:
       containers:
-        - name: urbox-otp-sms-bot-main-process
+        - name: urbox-otp-sms-bot
           image: ideavn/sms-bot-urbox:{latest}
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: urbox-otp-sms-bot-main-process-env
+                name: urbox-otp-sms-bot-env
+          resources:
+            limits:
+              cpu: 100m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
