@@ -130,6 +130,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
             });
           }
         } catch (error) {
+          lastId = data.logs[i - 1]?.id;
           try {
             await otpErrorLog.insertOne({
               message: error?.message,
