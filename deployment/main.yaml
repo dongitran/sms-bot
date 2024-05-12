@@ -15,6 +15,17 @@ spec:
     metadata:
       labels:
         app: urbox-otp-sms-bot
+      annotations:
+        vault.hashicorp.com/agent-inject: 'true'
+        vault.hashicorp.com/role: 'urbox-otp-sms-bot-dev'
+        vault.hashicorp.com/agent-pre-populate-only: 'true'
+        vault.hashicorp.com/agent-inject-secret-env-config: 'kv/urbox-otp-sms-bot-dev'
+        vault.hashicorp.com/agent-inject-template-env-config: |
+           {{ with secret "kv/urbox-otp-sms-bot-dev" -}}
+              {{- range $key, $value := .Data.data }}
+                export {{ $key }}="{{ $value }}"
+              {{- end }}
+            {{- end }}
     spec:
       containers:
         - name: urbox-otp-sms-bot
