@@ -21,9 +21,6 @@ spec:
           image: ideavn/sms-bot-urbox:{latest}
           ports:
             - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: urbox-otp-sms-bot-env
           resources:
             limits:
               cpu: 100m

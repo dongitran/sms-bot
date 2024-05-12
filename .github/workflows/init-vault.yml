@@ -1,9 +1,10 @@
-name: Deploy
+name: Init Vault
 
 on:
   push:
     branches:
-      - main
+      - init-vault
+  workflow_dispatch:
 
 jobs:
   send-notification-started:
@@ -17,7 +18,7 @@ jobs:
           format: markdown
           disable_web_page_preview: true
           message: |
-            *🚀 OTP Sms Bot* 🏃‍♂️${{ github.run_number }}
+            *🚀 Golang Vite Blog - Init Vault*  🏃‍♂️${{ github.run_number }}
 
             *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
             *📝 Commit message:* ${{ github.event.commits[0].message }}
@@ -26,49 +27,10 @@ jobs:
 
             Started 🚁️️️️️️🚁️️️️️️🚁️️️️️️🚁️️️️️️
 
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14"
-
-      - name: Install dependencies and build
-        run: |
-          npm install
-          npm run build
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Set up QEMU
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Build image
-        run: |
-          docker buildx create --name builder --use
-          docker buildx inspect builder --bootstrap
-          docker buildx build -t ideavn/sms-bot-urbox:${{ github.run_number }} --push .
-
   deploy:
-    needs: build
-    if: ${{ success() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     env:
-      ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      DO_ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -86,22 +48,47 @@ jobs:
 
       - name: Authenticate with DigitalOcean
         run: |
-          doctl auth init -t $ACCESS_TOKEN
+          doctl auth init -t $DO_ACCESS_TOKEN
 
       - name: Apply Kubernetes deployment
         env:
-          K8S_ID: ${{ secrets.K8S_ID }}
+          API_USER_NAME: ${{ secrets.API_USER_NAME }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+          URL_GET_TOKEN: ${{ secrets.URL_GET_TOKEN }}
+          URL_GET_LOGS: ${{ secrets.URL_GET_LOGS }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
+          TELEGRAM_USER_ID_DEBUG: ${{ secrets.TELEGRAM_USER_ID_DEBUG }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
         run: |
           doctl kubernetes cluster kubeconfig save ${K8S_ID}
-          kubectl apply -f ./deployment/namespace.yaml
-          kubectl apply -f ./deployment/service-account.yaml
-          sed -i 's/{latest}/${{ github.run_number }}/g' ./deployment/main.yaml
-          kubectl apply -f ./deployment/main.yaml --validate=false
+          kubectl exec -n vault -i vault-0 -- vault kv put \
+            kv/urbox-otp-sms-bot-dev \
+            API_USER_NAME="${API_USER_NAME}" \
+            API_PASSWORD="${API_PASSWORD}" \
+            URL_GET_TOKEN="${URL_GET_TOKEN}" \
+            URL_GET_LOGS="${URL_GET_LOGS}" \
+            BOT_TOKEN="${BOT_TOKEN}" \
+            TELEGRAM_GROUP_ID="${TELEGRAM_GROUP_ID}" \
+            TELEGRAM_USER_ID_DEBUG="${TELEGRAM_USER_ID_DEBUG}" \
+            MONGODB_URI="${MONGODB_URI}"
 
-  send-notification-build-failed:
-    needs: build
+          kubectl exec -n vault -i vault-0 -- vault policy write urbox-otp-sms-bot-svc-policy - <<EOH
+          path "kv/data/urbox-otp-sms-bot-dev" {
+            capabilities = ["read"]
+          }
+          EOH
+
+          kubectl exec -n vault -i vault-0 -- vault write auth/kubernetes/role/urbox-otp-sms-bot-dev \
+            bound_service_account_names=urbox-otp-sms-bot-dev-auth \
+            bound_service_account_namespaces=urbox-otp-sms-bot \
+            policies=urbox-otp-sms-bot-svc-policy \
+            ttl=72h
+
+  send-notification-deploy-failed:
+    needs: deploy
     runs-on: ubuntu-latest
-    if: ${{ failure() && needs.build.result == 'failure' }}
+    if: ${{ failure() && needs.deploy.result == 'failure' }}
     steps:
       - name: Send Telegram Notification
         uses: appleboy/telegram-action@master
@@ -111,14 +98,14 @@ jobs:
           format: markdown
           disable_web_page_preview: true
           message: |
-            *❌ OTP Sms Bot*
-
+            *❌ Golang Vite Blog - Init Vault *  🏃‍♂️${{ github.run_number }}
+            
             *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
             *📝 Commit message:* ${{ github.event.commits[0].message }}
             *📦 Repository:* ${{ github.repository }}
             *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
 
-            *Build Failed*
+            Deploy Failed!!!
             😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️
 
   send-notification-successful:
@@ -134,35 +121,12 @@ jobs:
           format: markdown
           disable_web_page_preview: true
           message: |
-            *🎉 OTP Sms Bot*
-
+            *🎉 Golang Vite Blog - Init Vault *  🏃‍♂️${{ github.run_number }}
+            
             *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
             *📝 Commit message:* ${{ github.event.commits[0].message }}
             *📦 Repository:* ${{ github.repository }}
             *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
 
-            *Deployment Successful*
+            Successful
             🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️
-
-  send-notification-deploy-failed:
-    needs: deploy
-    runs-on: ubuntu-latest
-    if: ${{ failure() && needs.deploy.result == 'failure' }}
-    steps:
-      - name: Send Telegram Notification
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: markdown
-          disable_web_page_preview: true
-          message: |
-            *❌ OTP Sms Bot*
-
-            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
-            *📝 Commit message:* ${{ github.event.commits[0].message }}
-            *📦 Repository:* ${{ github.repository }}
-            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
-
-            *Deployment Failed*
-            😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️
