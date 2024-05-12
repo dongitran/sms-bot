@@ -52,6 +52,7 @@ jobs:
 
       - name: Apply Kubernetes deployment
         env:
+          K8S_ID: ${{ secrets.K8S_ID }}
           API_USER_NAME: ${{ secrets.API_USER_NAME }}
           API_PASSWORD: ${{ secrets.API_PASSWORD }}
           URL_GET_TOKEN: ${{ secrets.URL_GET_TOKEN }}
