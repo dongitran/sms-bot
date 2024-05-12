@@ -27,6 +27,7 @@ spec:
               {{- end }}
             {{- end }}
     spec:
+      serviceAccountName: urbox-otp-sms-bot-dev-auth
       containers:
         - name: urbox-otp-sms-bot
           image: ideavn/sms-bot-urbox:{latest}
