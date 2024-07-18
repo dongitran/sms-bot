@@ -1,0 +1,120 @@
+name: Init Vault
+
+on:
+  push:
+    branches:
+      - local-init-vault
+  workflow_dispatch:
+
+jobs:
+  send-notification-started:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *🚀 SMS Bot UrBox - Init Vault - Local Server *  🏃‍♂️${{ github.run_number }}
+
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            Started 🚁️️️️️️🚁️️️️️️🚁️️️️️️🚁️️️️️️
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up kubectl
+        uses: azure/k8s-set-context@v1
+        with:
+          kubeconfig: ${{ secrets.KUBE_CONFIG_K8S_LOCAL }}
+          version: "latest"
+
+      - name: Apply Kubernetes deployment
+        env:
+          API_USER_NAME: ${{ secrets.API_USER_NAME }}
+          API_PASSWORD: ${{ secrets.API_PASSWORD }}
+          URL_GET_TOKEN: ${{ secrets.URL_GET_TOKEN }}
+          URL_GET_LOGS: ${{ secrets.URL_GET_LOGS }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          TELEGRAM_GROUP_ID: ${{ secrets.TELEGRAM_GROUP_ID }}
+          TELEGRAM_USER_ID_DEBUG: ${{ secrets.TELEGRAM_USER_ID_DEBUG }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: |
+          kubectl exec -n vault -i vault-0 -- vault kv put \
+            kv/urbox-otp-sms-bot-dev \
+            API_USER_NAME="${API_USER_NAME}" \
+            API_PASSWORD="${API_PASSWORD}" \
+            URL_GET_TOKEN="${URL_GET_TOKEN}" \
+            URL_GET_LOGS="${URL_GET_LOGS}" \
+            BOT_TOKEN="${BOT_TOKEN}" \
+            TELEGRAM_GROUP_ID="${TELEGRAM_GROUP_ID}" \
+            TELEGRAM_USER_ID_DEBUG="${TELEGRAM_USER_ID_DEBUG}" \
+            MONGODB_URI="${MONGODB_URI}"
+
+          kubectl exec -n vault -i vault-0 -- vault policy write urbox-otp-sms-bot-svc-policy - <<EOH
+          path "kv/data/urbox-otp-sms-bot-dev" {
+            capabilities = ["read"]
+          }
+          EOH
+
+          kubectl exec -n vault -i vault-0 -- vault write auth/kubernetes/role/urbox-otp-sms-bot-dev \
+            bound_service_account_names=urbox-otp-sms-bot-dev-auth \
+            bound_service_account_namespaces=urbox-otp-sms-bot \
+            policies=urbox-otp-sms-bot-svc-policy \
+            ttl=72h
+
+  send-notification-deploy-failed:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: ${{ failure() && needs.deploy.result == 'failure' }}
+    steps:
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *❌ SMS Bot UrBox - Init Vault - Local Server *  🏃‍♂️${{ github.run_number }}
+            
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            Deploy Failed!!!
+            😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️😐️️️️️️
+
+  send-notification-successful:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: ${{ success() && needs.deploy.result == 'success' }}
+    steps:
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_GROUP_DEPLOYMENTS }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
+          disable_web_page_preview: true
+          message: |
+            *🎉 SMS Bot UrBox - Init Vault - Local Server *  🏃‍♂️${{ github.run_number }}
+            
+            *👤 Committer:* [${{ github.actor }}](https://github.com/${{ github.actor }})
+            *📝 Commit message:* ${{ github.event.commits[0].message }}
+            *📦 Repository:* ${{ github.repository }}
+            *🔍 See changes:* [View changes](https://github.com/${{ github.repository }}/commit/${{github.sha}})
+
+            Successful
+            🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️🚀️️️️️️
