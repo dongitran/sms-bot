@@ -105,6 +105,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     let dataToLog = [];
     for (let i = 10; i > 0; i--) {
       if (data.logs[i - 1]?.id > lastId) {
+        console.log(data.logs[i - 1], "1ujaljsflk");
         let msgSendTelegramItem = "<b>" + data.logs[i - 1]["target"] + "</b>";
         msgSendTelegramItem += "-->";
 
