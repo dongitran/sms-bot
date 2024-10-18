@@ -105,7 +105,6 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     let dataToLog = [];
     for (let i = 10; i > 0; i--) {
       if (data.logs[i - 1]?.id > lastId) {
-        console.log(data.logs[i - 1], "1ujaljsflk");
         let msgSendTelegramItem = "<b>" + data.logs[i - 1]["target"] + "</b>";
         msgSendTelegramItem += "-->";
 
@@ -131,6 +130,7 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
             });
           }
         } catch (error) {
+          console.log(error, "Get otp error");
           lastId = data.logs[i - 1]?.id;
 
           try {
@@ -155,24 +155,22 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
             }
           } catch (error) {
             console.log(error, "parse payload error");
-          }
 
-          try {
-            await otpErrorLog.insertOne({
-              message: error?.message,
-              type: "get-data-error",
-              error: parse(stringify(error)),
-              dataError: {
-                payload,
-                data,
-              },
-              createdAt: new Date(),
-            });
-          } catch (errorSendException) {
-            console.log("Log get data error: ", errorSendException);
+            try {
+              await otpErrorLog.insertOne({
+                message: error?.message,
+                type: "get-data-error",
+                error: parse(stringify(error)),
+                dataError: {
+                  payload,
+                  data,
+                },
+                createdAt: new Date(),
+              });
+            } catch (errorSendException) {
+              console.log("Log get data error: ", errorSendException);
+            }
           }
-
-          console.log(error, "Get otp error");
         }
       }
     }
