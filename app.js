@@ -132,6 +132,14 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
           }
         } catch (error) {
           lastId = data.logs[i - 1]?.id;
+
+          try {
+            payload = data.logs[i - 1]?.input;
+            console.log(JSON.parse(payload, "109ujasldkjflk"));
+          } catch (error) {
+            console.log(error, "parse payload error");
+          }
+
           try {
             await otpErrorLog.insertOne({
               message: error?.message,
