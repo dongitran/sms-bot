@@ -4,8 +4,9 @@ var logger = require("morgan");
 const { Telegraf } = require("telegraf");
 const { stringify, parse } = require("flatted");
 const schedule = require("node-schedule");
+const { Pool } = require("pg");
+const crypto = require("crypto");
 const axios = require("axios");
-const { MongoClient } = require("mongodb");
 require("dotenv").config();
 const { setDefaultResultOrder } = require("node:dns");
 const { get } = require("lodash");
@@ -16,16 +17,173 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(logger("dev"));
 
-const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
-client.connect().then(() => console.log("Connected to MongoDB"));
 
-const db = client.db();
-const otpErrorLog = db.collection("otp_sms_bot_error_log");
-const otpDataLog = db.collection("otp_sms_bot_data");
+const ROCKET_CHAT_CONFIG = {
+  serverUrl: process.env.ROCKET_CHAT_SERVER_URL,
+  username: process.env.ROCKET_CHAT_USERNAME,
+  password: process.env.ROCKET_CHAT_PASSWORD,
+  targetChannel: process.env.ROCKET_CHAT_TARGET_CHANNEL
+};
+
+let rocketChatToken = null;
+let rocketChatUserId = null;
+let tokenExpireTime = null;
+
+async function authenticateRocketChat() {
+  try {
+    console.log('Authenticating with Rocket.Chat...');
+    const response = await axios.post(`${ROCKET_CHAT_CONFIG.serverUrl}/api/v1/login`, {
+      username: ROCKET_CHAT_CONFIG.username,
+      password: ROCKET_CHAT_CONFIG.password
+    });
+
+    if (response.data.status === 'success') {
+      rocketChatToken = response.data.data.authToken;
+      rocketChatUserId = response.data.data.userId;
+      tokenExpireTime = Date.now() + (24 * 60 * 60 * 1000);
+      console.log('Rocket.Chat authentication successful');
+      return true;
+    } else {
+      console.error('Rocket.Chat authentication failed:', response.data);
+      return false;
+    }
+  } catch (error) {
+    console.error('Rocket.Chat authentication error:', error.message);
+    return false;
+  }
+}
+
+async function ensureRocketChatToken() {
+  if (!rocketChatToken || !tokenExpireTime || Date.now() >= tokenExpireTime) {
+    console.log('Token expired or not available, refreshing...');
+    return await authenticateRocketChat();
+  }
+  return true;
+}
+
+async function sendRocketChatMessage(message) {
+  try {
+    const isTokenValid = await ensureRocketChatToken();
+    if (!isTokenValid) {
+      console.error('Failed to get valid Rocket.Chat token');
+      return false;
+    }
+
+    const response = await axios.post(
+      `${ROCKET_CHAT_CONFIG.serverUrl}/api/v1/chat.postMessage`,
+      {
+        channel: `#${ROCKET_CHAT_CONFIG.targetChannel}`,
+        text: message
+      },
+      {
+        headers: {
+          'X-Auth-Token': rocketChatToken,
+          'X-User-Id': rocketChatUserId,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data.success) {
+      console.log('Message sent to Rocket.Chat successfully');
+      return true;
+    } else {
+      console.error('Failed to send message to Rocket.Chat:', response.data);
+      return false;
+    }
+  } catch (error) {
+    console.error('Rocket.Chat send message error:', error.message);
+    
+    if (error.response && error.response.status === 401) {
+      console.log('Authentication error, trying to refresh token...');
+      const refreshed = await authenticateRocketChat();
+      if (refreshed) {
+        return await sendRocketChatMessage(message);
+      }
+    }
+    return false;
+  }
+}
+
+function convertHtmlToPlainText(htmlMessage) {
+  return htmlMessage
+    .replace(/<b>/g, '*')
+    .replace(/<\/b>/g, '*')
+    .replace(/<code>/g, '`')
+    .replace(/<\/code>/g, '`')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+function decryptAES(encryptedData, key) {
+  try {
+    const encryptedBuffer = Buffer.from(encryptedData, "base64");
+    const iv = encryptedBuffer.slice(0, 16);
+    const encrypted = encryptedBuffer.slice(16);
+    const decipher = crypto.createDecipheriv(
+      "aes-256-cbc",
+      Buffer.from(key, "utf8"),
+      iv
+    );
+    let decrypted = decipher.update(encrypted);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch (error) {
+    console.log("Decrypt error:", error);
+    return null;
+  }
+}
+
+async function initDatabase() {
+  try {
+    const client = await pool.connect();
+    console.log("Connected to PostgreSQL");
+
+    try {
+      const logResult = await client.query(
+        "select * from log where type = 1 or (type = 5 and provider='vgs_zns') order by id desc limit 5;"
+      );
+      console.log("=== LOG TABLE QUERY RESULTS ===");
+      console.log("Number of rows:", logResult.rows.length);
+      logResult.rows.forEach((row, index) => {
+        console.log(`Row ${index + 1}:`, JSON.stringify(row, null, 2));
+      });
+      console.log("=== END LOG TABLE QUERY ===");
+    } catch (logError) {
+      console.log("Error querying log table:", logError.message);
+      console.log("This might be normal if 'log' table doesn't exist yet.");
+    }
+
+    client.release();
+    console.log("Database connection tested");
+  } catch (error) {
+    console.error("Database connection error:", error);
+  }
+}
+
+async function initRocketChat() {
+  try {
+    await authenticateRocketChat();
+    console.log("Rocket.Chat initialized successfully");
+  } catch (error) {
+    console.error("Rocket.Chat initialization error:", error);
+  }
+}
+
+initDatabase();
+initRocketChat();
 
 console.log(process.env.BOT_TOKEN, "process.env.BOT_TOKEN");
 const bot = new Telegraf(process.env.BOT_TOKEN);
@@ -33,6 +191,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
 async function lauchBot() {
   let retry = 0;
   do {
@@ -55,26 +214,13 @@ let isProcessing = false;
 let lastId = 0;
 let firstRun = true;
 let cnt = 0;
-let apiToken = "";
-let getToken = true;
 let cntWaiting = 0;
 
-const job = schedule.scheduleJob("*/2 * * * * *", async function () {
+const job = schedule.scheduleJob("*/1 * * * * *", async function () {
   try {
     if (cntWaiting > 0) {
       cntWaiting--;
       return;
-    }
-
-    if (getToken) {
-      const tokenResult = await axios.post(process.env.URL_GET_TOKEN, {
-        username: process.env.API_USER_NAME,
-        password: process.env.API_PASSWORD,
-        type: "account",
-      });
-      apiToken = tokenResult?.data?.token;
-
-      getToken = false;
     }
 
     if (isProcessing) {
@@ -83,97 +229,73 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
     }
     isProcessing = true;
     cnt++;
-    // console.log("Counter run : " + cnt);
 
-    let res = await axios.get(process.env.URL_GET_LOGS, {
-      headers: {
-        "X-Access-Token": apiToken,
-      },
-    });
+    const client = await pool.connect();
+    const result = await client.query(
+      "select * from log where type = 1 or (type = 5 and provider='vgs_zns') order by id desc limit 10;"
+    );
+    client.release();
 
-    const data = res.data;
+    const data = result.rows;
 
     if (firstRun) {
       firstRun = false;
-
-      lastId = data.logs[0].id;
+      if (data.length > 0) {
+        lastId = data[0].id;
+      }
       isProcessing = false;
       return;
     }
 
     let msgSendTelegram = "";
-    let dataToLog = [];
-    for (let i = 10; i > 0; i--) {
-      if (data.logs[i - 1]?.id > lastId) {
-        let msgSendTelegramItem = "<b>" + data.logs[i - 1]["target"] + "</b>";
+    let msgSendRocketChat = "";
+
+    for (let i = data.length - 1; i >= 0; i--) {
+      const logItem = data[i];
+
+      if (logItem.id > lastId) {
+        let msgSendTelegramItem = "<b>" + logItem.target + "</b>";
+        let msgSendRocketChatItem = "*" + logItem.target + "*";
+        
         msgSendTelegramItem += "-->";
+        msgSendRocketChatItem += " --> ";
 
-        let payload;
         try {
-          payload = data.logs[i - 1]["payload"];
-          // Get otp
-          const regex = /\b\d{6}\b/g;
-          const match = payload.match(regex);
+          let otpCode = null;
 
-          const otpCode = get(match, "[0]");
+          if (logItem.type === 1) {
+            const decryptedPayload = decryptAES(logItem.payload, process.env.AES_KEY);
+
+            if (decryptedPayload) {
+              const regex = /\b\d{6}\b/g;
+              const match = decryptedPayload.match(regex);
+              otpCode = get(match, "[0]");
+            }
+          } else if (logItem.type === 5 && logItem.provider === "vgs_zns") {
+            const decryptedRequest = decryptAES(logItem.request, process.env.AES_KEY);
+
+            if (decryptedRequest) {
+              const otpRegex = /"otp"\s*:\s*"(\d+)"/;
+              const match = decryptedRequest.match(otpRegex);
+              otpCode = match ? match[1] : null;
+            }
+          }
+
           if (otpCode) {
             msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
             msgSendTelegramItem += "\n\n\n";
             msgSendTelegram += msgSendTelegramItem;
 
-            dataToLog.push({
-              id: data.logs[i - 1]?.id,
-              phoneNumber: data.logs[i - 1]["target"],
-              message: otpCode,
-              rawData: data.logs[i - 1],
-              createdAt: new Date(),
-            });
+            msgSendRocketChatItem += "*" + ` \`${otpCode}\` ` + "*";
+            msgSendRocketChatItem += "\n\n";
+            msgSendRocketChat += msgSendRocketChatItem;
           }
         } catch (error) {
-          console.log(error, "Get otp error");
-          lastId = data.logs[i - 1]?.id;
-
-          try {
-            payload = data.logs[i - 1]?.input;
-            payload = JSON.parse(payload);
-            const otpCode = payload?.params?.otp;
-            const phoneNumber = payload?.to[0];
-
-            if (otpCode && phoneNumber) {
-              msgSendTelegramItem +=
-                "<b>" + ` <code>${otpCode}</code> ` + "</b>";
-              msgSendTelegramItem += "\n\n\n";
-              msgSendTelegram += msgSendTelegramItem;
-
-              dataToLog.push({
-                id: data.logs[i - 1]?.id,
-                phoneNumber: data.logs[i - 1]["target"],
-                message: otpCode,
-                rawData: data.logs[i - 1],
-                createdAt: new Date(),
-              });
-            }
-          } catch (error) {
-            console.log(error, "parse payload error");
-
-            try {
-              await otpErrorLog.insertOne({
-                message: error?.message,
-                type: "get-data-error",
-                error: parse(stringify(error)),
-                dataError: {
-                  payload,
-                  data,
-                },
-                createdAt: new Date(),
-              });
-            } catch (errorSendException) {
-              console.log("Log get data error: ", errorSendException);
-            }
-          }
+          console.log(error, "Decrypt/process error for type:", logItem.type);
         }
       }
     }
+
     if (msgSendTelegram.length > 0) {
       try {
         await bot.telegram.sendMessage(
@@ -184,10 +306,13 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
           }
         );
 
-        lastId = data.logs[0].id;
+        await sendRocketChatMessage(msgSendRocketChat);
+
+        if (data.length > 0) {
+          lastId = data[0].id;
+        }
       } catch (error) {
         console.log("Send message error: ", error);
-        // send error to telegram
         try {
           await bot.telegram.sendMessage(
             process.env.TELEGRAM_USER_ID_DEBUG,
@@ -196,34 +321,12 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         } catch (errorSendException) {
           console.log("Send exception error: ", errorSendException);
         }
-
-        try {
-          await otpErrorLog.insertOne({
-            message: error?.message,
-            type: "send-message-error",
-            error: parse(stringify(error)),
-            createdAt: new Date(),
-          });
-        } catch (errorSendException) {
-          console.log("Log send telegram error: ", errorSendException);
-        }
-      }
-
-      // Write log data
-      try {
-        await otpDataLog.insertMany(dataToLog);
-      } catch (error) {
-        console.log(error, "Write log data error");
       }
     }
     isProcessing = false;
   } catch (error) {
     console.log(error, "Error process");
-    if (error?.response?.status === 401) {
-      getToken = true;
-    } else {
-      cntWaiting = 1;
-    }
+    cntWaiting = 1;
 
     try {
       console.log("Error: ", parse(stringify(error)));
@@ -231,13 +334,6 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
         process.env.TELEGRAM_USER_ID_DEBUG,
         JSON.stringify(parse(stringify(error)))
       );
-
-      await otpErrorLog.insertOne({
-        message: error?.message,
-        type: "process-error",
-        error: parse(stringify(error)),
-        createdAt: new Date(),
-      });
     } catch (errorSendException) {
       console.log("Send exception error: ", errorSendException);
     }
@@ -246,7 +342,19 @@ const job = schedule.scheduleJob("*/2 * * * * *", async function () {
   }
 });
 
-const port = process.env.PORT || 3000;
+process.on("SIGINT", async () => {
+  console.log("Shutting down gracefully...");
+  await pool.end();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  console.log("Shutting down gracefully...");
+  await pool.end();
+  process.exit(0);
+});
+
+const port = process.env.PORT || 30501;
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
