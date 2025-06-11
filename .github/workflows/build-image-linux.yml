@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - local-build-image-linux
+      - build-image-linux
 
 jobs:
   send-notification-started:
