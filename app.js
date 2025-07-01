@@ -102,7 +102,7 @@ async function sendRocketChatMessage(message) {
       return false;
     }
   } catch (error) {
-    console.error('Rocket.Chat send message error:', error.message);
+    console.error('Rocket.Chat send message error:', error);
     
     if (error.response && error.response.status === 401) {
       console.log('Authentication error, trying to refresh token...');
