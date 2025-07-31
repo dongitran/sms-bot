@@ -17,6 +17,9 @@ app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 app.use(logger("dev"));
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
 const pool = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -146,6 +149,93 @@ function decryptAES(encryptedData, key) {
   }
 }
 
+function extractOTPFromLogItem(logItem) {
+  try {
+    let otpCode = null;
+
+    if (logItem.type === 1) {
+      const decryptedPayload = decryptAES(logItem.payload, process.env.AES_KEY);
+
+      if (decryptedPayload) {
+        const regex = /\b\d{6}\b/g;
+        const match = decryptedPayload.match(regex);
+        otpCode = get(match, "[0]");
+      }
+    } else if (logItem.type === 5 && logItem.provider === "vgs_zns") {
+      const decryptedRequest = decryptAES(logItem.request, process.env.AES_KEY);
+
+      if (decryptedRequest) {
+        const otpRegex = /"otp"\s*:\s*"(\d+)"/;
+        const match = decryptedRequest.match(otpRegex);
+        otpCode = match ? match[1] : null;
+      }
+    }
+
+    return otpCode;
+  } catch (error) {
+    console.log("Extract OTP error:", error);
+    return null;
+  }
+}
+
+app.get('/api/otp/:phone', async (req, res) => {
+  try {
+    const phone = req.params.phone;
+    
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số điện thoại không được để trống'
+      });
+    }
+
+    const client = await pool.connect();
+    
+    const result = await client.query(
+      "SELECT * FROM log WHERE (type = 1 OR (type = 5 AND provider='vgs_zns')) AND target = $1 ORDER BY id DESC LIMIT 1",
+      [phone]
+    );
+    
+    client.release();
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy OTP cho số điện thoại này'
+      });
+    }
+
+    const logItem = result.rows[0];
+    const otpCode = extractOTPFromLogItem(logItem);
+
+    if (!otpCode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không thể trích xuất mã OTP'
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        phone: logItem.target,
+        otp: otpCode,
+        timestamp: logItem.created_at || logItem.timestamp,
+        id: logItem.id,
+        type: logItem.type,
+        provider: logItem.provider
+      }
+    });
+
+  } catch (error) {
+    console.error('API get OTP error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi server internal'
+    });
+  }
+});
+
 async function initDatabase() {
   try {
     const client = await pool.connect();
@@ -261,25 +351,7 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
         msgSendRocketChatItem += " --> ";
 
         try {
-          let otpCode = null;
-
-          if (logItem.type === 1) {
-            const decryptedPayload = decryptAES(logItem.payload, process.env.AES_KEY);
-
-            if (decryptedPayload) {
-              const regex = /\b\d{6}\b/g;
-              const match = decryptedPayload.match(regex);
-              otpCode = get(match, "[0]");
-            }
-          } else if (logItem.type === 5 && logItem.provider === "vgs_zns") {
-            const decryptedRequest = decryptAES(logItem.request, process.env.AES_KEY);
-
-            if (decryptedRequest) {
-              const otpRegex = /"otp"\s*:\s*"(\d+)"/;
-              const match = decryptedRequest.match(otpRegex);
-              otpCode = match ? match[1] : null;
-            }
-          }
+          const otpCode = extractOTPFromLogItem(logItem);
 
           if (otpCode) {
             msgSendTelegramItem += "<b>" + ` <code>${otpCode}</code> ` + "</b>";
