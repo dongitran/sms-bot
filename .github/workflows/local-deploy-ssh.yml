@@ -84,7 +84,7 @@ jobs:
             /usr/local/bin/docker stop sms-zns-bot
             /usr/local/bin/docker rm sms-zns-bot
             /usr/local/bin/docker pull ideavn/sms-zns-bot
-            /usr/local/bin/docker run -d --name sms-zns-bot --env-file /tmp/.env --restart always ideavn/sms-zns-bot
+            /usr/local/bin/docker run -d --name sms-zns-bot -p 30501:30501 --env-file /tmp/.env --restart always ideavn/sms-zns-bot
             rm -rf /tmp/.env
             /usr/local/bin/docker image prune -a -f
 
