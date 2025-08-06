@@ -370,13 +370,13 @@ const job = schedule.scheduleJob("*/1 * * * * *", async function () {
 
     if (msgSendTelegram.length > 0) {
       try {
-        /**await bot.telegram.sendMessage(
+        await bot.telegram.sendMessage(
           process.env.TELEGRAM_GROUP_ID,
           msgSendTelegram,
           {
             parse_mode: "HTML",
           }
-        ); */
+        );
 
         //await sendRocketChatMessage(msgSendRocketChat);
 
